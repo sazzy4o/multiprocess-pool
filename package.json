@@ -1,6 +1,6 @@
 {
   "name": "multiprocess-pool",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "description": "Node.js multiprocessing library similar to multiprocessing.Pool in Python",
   "repository": {
     "type": "git",
