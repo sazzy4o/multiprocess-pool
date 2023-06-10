@@ -1,26 +1,30 @@
-'use strict'
+import { ChildProcess, fork } from 'child_process'
+import jsonUtils from './json-utils'
+import Job, { JobCallback } from './job'
 
-const fork      = require('child_process').fork
-const jsonUtils = require('./json-utils')
-
-const allWorkers = []
+const allWorkers:WorkerWrapper[] = []
 process.on('exit', () => allWorkers.forEach(worker => worker.process.kill()))
 
-function makeError(errorMsg, stack) {
+function makeError(errorMsg:string, stack:any) {
   const err = new Error(errorMsg)
   err.stack = stack
   return err
 }
 
-module.exports = class WorkerWrapper {
+export default class WorkerWrapper {
+  process!: ChildProcess
+  timeout?: string | number | NodeJS.Timeout
+  runningJobs: number
+  terminated: boolean
+  registeredJobs: { [key: number]: Job }
+  fnOrModulePaths: { [key: string]: string | Function }
 
   constructor() {
-    this.process = null
     this.runningJobs = 0
     this.terminated = false
     this.registeredJobs = {}
     this.fnOrModulePaths = {}
-    this.timeout = null
+    this.timeout = undefined
 
     this.startWorkerProcess()
     allWorkers.push(this)
@@ -29,12 +33,12 @@ module.exports = class WorkerWrapper {
   startWorkerProcess() {
     this.process = fork(`${__dirname}/worker.js`)
     for (const regJobId in this.registeredJobs) {
-      if (this.registeredJobs.hasOwnProperty(regJobId)) {
+      if (this.registeredJobs[regJobId]) {
         const job = this.registeredJobs[regJobId]
-        this.registerJob(regJobId, job.fnOrModulePath, job.callback)
+        this.registerJob(parseInt(regJobId, 10), job.fnOrModulePath, job.callback)
       }
     }
-    this.process.on('message', data => {
+    this.process.on('message', (data: any) => {
       const job = this.registeredJobs[data.jobId]
       if (job.terminated) { return }
 
@@ -43,7 +47,9 @@ module.exports = class WorkerWrapper {
       if (data.error) {
         err = makeError(data.error, data.stack)
       }
-      job.callback(err, data)
+      if (job.callback) {
+        job.callback(err, data)
+      }
       if (data.jobDone) {
         this.runningJobs -= 1
       } else if (job.timeout > 0) {
@@ -55,7 +61,7 @@ module.exports = class WorkerWrapper {
     })
   }
 
-  runJob(jobId, index, argList) {
+  runJob(jobId: number, index: number, argList: any[]) {
     if (this.terminated) { return }  // TODO: should this be an error?
 
     this.process.send({
@@ -71,12 +77,12 @@ module.exports = class WorkerWrapper {
     }
   }
 
-  registerJob(jobId, fnOrModulePath, options, callback) {
+  registerJob(jobId: number, fnOrModulePath: Function | string, options: any, callback?: JobCallback) {
     const timeout = (options ? options.timeout : null) || -1
 
     if (this.terminated) { return }  // TODO: should this be an error?
 
-    this.registeredJobs[jobId] = {callback, fnOrModulePath, timeout, options}
+    this.registeredJobs[jobId] = {callback, fnOrModulePath, timeout, options, id: jobId}
     const modulePath = typeof fnOrModulePath === 'string' ? fnOrModulePath : null
     const fnStr = typeof fnOrModulePath === 'function' ? fnOrModulePath.toString() : null
     this.process.send({
@@ -86,7 +92,7 @@ module.exports = class WorkerWrapper {
     })
   }
 
-  deregisterJob(jobId) {
+  deregisterJob(jobId: number) {
     if (this.terminated) { return }  // TODO: should this be an error?
 
     delete this.registeredJobs[jobId]
@@ -100,8 +106,11 @@ module.exports = class WorkerWrapper {
     this.terminated = true
     this.process.disconnect()
     for (const cbName in this.registeredJobs) {
-      if (this.registeredJobs.hasOwnProperty(cbName)) {
-        this.registeredJobs[cbName].callback(new Error('Pool was closed'), null)
+      if (this.registeredJobs[cbName]) {
+        const callback = this.registeredJobs[cbName].callback
+        if (callback) {
+          callback(new Error('Pool was closed'), null)
+        }
       }
     }
   }
@@ -113,12 +122,14 @@ module.exports = class WorkerWrapper {
     }
   }
 
-  startJobTimeout(job) {
+  startJobTimeout(job: Job) {
     this.timeout = setTimeout(() => {
       job.terminated = true
       this.process.kill()
       this.startWorkerProcess()
-      job.callback(new Error('Task timed out'), null)
+      if (job.callback){
+        job.callback(new Error('Task timed out'), null)
+      }
     }, job.timeout)
   }
 

@@ -1,14 +1,20 @@
-'use strict'
+export interface HeapNode {
+  elem: number
+  data: any
+  child?: HeapNode | null
+  next?: HeapNode | null
+}
 
-const newHeapNode = (elem, data) => ({
+const newHeapNode = (elem: number, data:any): HeapNode => ({
   elem: elem,
   data: data,
   child: null,
   next: null
 })
 
-class Heap {
-
+export class Heap {
+  root: any
+  len: number
   constructor() {
     this.root = null
     this.len = 0
@@ -24,18 +30,18 @@ class Heap {
     return max
   }
 
-  insert(elem, data) {
+  insert(elem:number, data:any) {
     this.root = this.merge(this.root, newHeapNode(elem, data))
     return ++this.len
   }
 
-  link(parent, child) {
+  link(parent:HeapNode, child:HeapNode) {
     const firstChild = parent.child
     parent.child = child
     child.next = firstChild
   }
 
-  merge(heap1, heap2) {
+  merge(heap1?: HeapNode | null, heap2?: HeapNode | null) {
     if (!heap1 || !heap2) {
       return heap1 || heap2
     }
@@ -49,11 +55,11 @@ class Heap {
     return heap2
   }
 
-  mergePairs(heapLL) {
+  mergePairs(heapLL?: HeapNode| null) {
     const paired = []
     while (heapLL && heapLL.next) {
+      const heap2 = heapLL.next
       const heap1 = heapLL
-      const heap2 = heap1.next
       heapLL = heap2.next
       paired.push(this.merge(heap1, heap2))
     }
@@ -72,4 +78,4 @@ class Heap {
 
 }
 
-module.exports = Heap
+export default Heap

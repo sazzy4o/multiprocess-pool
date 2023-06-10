@@ -1,9 +1,6 @@
 # node-multiprocessing
 Dead simple parallel processing for node
 
-## Version 1.0 upgrade notes
-- Upgrades Bluebird from ^2 to ^3 ([see details here](http://bluebirdjs.com/docs/new-in-bluebird-3.html))
-
 ## Example
 
 ```javascript
@@ -23,10 +20,8 @@ pool.map([1, 2, 3], square).then(result => console.log(result));
 ## Promise + Module worker example
 ```javascript
 // ./worker.js
-const P = require('bluebird');
-
-module.exports = function squareAsync(x) {
-  return P.resolve().then(() => x * x);
+module.exports = async function squareAsync(x) {
+  return x * x;
 };
 ```
 
@@ -167,3 +162,6 @@ Uses same options as Pool.map, but chunksize will be ignored.
 ## License
 
   MIT
+
+## Original Project
+This project was forked from [node-multiprocessing](https://github.com/ryanpon/node-multiprocessing).

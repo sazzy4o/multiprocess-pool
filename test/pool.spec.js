@@ -1,13 +1,18 @@
-'use strict'
+// import {Pool} from '../dist/index.js'
+// import chai from 'chai'
+// import chaiAsPromised from 'chai-as-promised'
+// import _ from 'lodash'
+// import os from 'os'
 
 const Pool   = require('../').Pool
 const chai   = require('chai')
-const should = chai.should()
+const chaiAsPromised = require('chai-as-promised')
 const _      = require('lodash')
-const P      = require('bluebird')
 const os     = require('os')
 
-chai.use(require('chai-as-promised'))
+const should = chai.should()
+
+chai.use(chaiAsPromised)
 
 describe('Pool', function () {
 
@@ -16,11 +21,13 @@ describe('Pool', function () {
     it('should adhere to the number of workers passed in', function () {
       const pool = new Pool(4)
       pool.workers.should.have.length(4)
+      pool.close()
     })
 
     it('should default to number of CPUs on the machine num workers is not passed', function () {
       const pool = new Pool()
       pool.workers.should.have.length(os.cpus().length)
+      pool.close()
     })
 
   })
@@ -104,16 +111,17 @@ describe('Pool', function () {
   describe('#map', function () {
 
     it('should perform a simple map', function () {
-      return new Pool(2).map([1, 2, 3, 4, 5], function (n) {
+      const pool = new Pool(2)
+      pool.map([1, 2, 3, 4, 5], function (n) {
         return n * 2
       })
         .then(function (res) {
           should.exist(res)
           res.should.eql([2, 4, 6, 8, 10])
-        })
+        }).finally(()=>pool.close())
     })
 
-    it('should perform multiple maps at once', function () {
+    it('should perform multiple maps at once', async function () {
       const pool = new Pool(2)
       const arr1 = _.range(0, 50)
       const fn1 = function (n) {
@@ -127,26 +135,26 @@ describe('Pool', function () {
       const fn3 = function (n) {
         return n
       }
-      return P.all([
+      await Promise.all([
         pool.map(arr1, fn1),
         pool.map(arr2, fn2),
         pool.map(arr3, fn3)
       ])
-        .spread(function (res1, res2, res3) {
+        .then(function ([res1, res2, res3]) {
           res1.should.eql(arr1.map(fn1))
           res2.should.eql(arr2.map(fn2))
           res3.should.eql(arr3.map(fn3))
-        })
+        }).finally(()=>pool.close())
     })
 
     it('should handle errors', function () {
-      return new Pool(2).map([1, 2, 3], function (n) {
+      const pool = new Pool(2)
+      pool.map([1, 2, 3], function (n) {
         if (n === 2) {
           throw new Error('test error')
         }
         return n
-      })
-        .should.be.rejectedWith(/test error/)
+      }).should.be.rejectedWith(/test error/)
     })
 
     it('should work with more workers than items to process', function () {
@@ -197,7 +205,7 @@ describe('Pool', function () {
     it('should still work after processing multiple jobs', function () {
       const pool = new Pool(2)
       const fn = function (n) { return n * 5 }
-      return P.all([
+      return Promise.all([
         pool.map(_.range(50), fn),
         pool.map(_.range(75), fn),
         pool.map(_.range(100), fn)
@@ -237,7 +245,7 @@ describe('Pool', function () {
         callbacks.sort()
       }
       return pool.map([1, 2], x => x, {onResult})
-        .then(function (result) {
+        .then(function () {
           callbacks.should.eql([
             [1, 0],
             [2, 1]
@@ -264,7 +272,7 @@ describe('Pool', function () {
         return n * 10
       }
       const pool = new Pool(4)
-      return P.all([
+      return Promise.all([
         pool.apply(1, fn),
         pool.apply(2, fn),
         pool.apply(3, fn),
@@ -286,12 +294,12 @@ describe('Pool', function () {
         })
     })
 
-    it('should be able to handle P based functions', function () {
-      const fn = function (n) {
-        return require('bluebird').resolve(n * 4).delay(10)
+    it('should be able to handle Promise based functions', function () {
+      const fn = async function (n) {
+        return n * 4;
       }
       const pool = new Pool(2)
-      return P.all([
+      return Promise.all([
         pool.apply(4, fn),
         pool.apply(1, fn),
         pool.apply(3, fn),
@@ -304,14 +312,13 @@ describe('Pool', function () {
 
     it('should handle P rejections', function () {
       const fn = function (n) {
-        const P = require('bluebird')
         if (n === 1) {
-          return P.reject(new Error('My unlucky number'))
+          return Promise.reject(new Error('My unlucky number'))
         }
-        return require('bluebird').resolve(n * 4).delay(10)
+        return Promise.resolve(n * 4)
       }
       const pool = new Pool(3)
-      return P.all([
+      return Promise.all([
         pool.apply(4, fn),
         pool.apply(1, fn),
         pool.apply(3, fn),
@@ -325,11 +332,10 @@ describe('Pool', function () {
         return n * 20
       }
       const fn2 = function (n) {
-        const P = require('bluebird')
-        return P.resolve(n * 2)
+        return Promise.resolve(n * 2)
       }
       const pool = new Pool(4)
-      return P.all([
+      return Promise.all([
         pool.apply(2, fn2),
         pool.apply(1, fn1),
         pool.apply(3, fn1),
@@ -374,8 +380,8 @@ describe('Pool', function () {
     it('should work with modules', function () {
       const pool = new Pool(5)
       pool.define('greet', `${__dirname}/sample-module`)
-      return P.join(pool.greet.apply('World!!'), pool.greet.apply('Earth!!'))
-        .spread(function (res1, res2) {
+      return Promise.all([pool.greet.apply('World!!'), pool.greet.apply('Earth!!')])
+        .then(function ([res1, res2]) {
           res1.should.equal('Hello, World!!!')
           res2.should.equal('Hello, Earth!!!')
         })
@@ -389,7 +395,7 @@ describe('Pool', function () {
       const pool = new Pool(5)
       let jobsCompleted = 0
       const fn = function (n) { return n }
-      return P.all([
+      return Promise.all([
         pool.map(_.range(501), fn, 1)
           .then(function () {
             jobsCompleted++
@@ -413,7 +419,7 @@ describe('Pool', function () {
       const pool = new Pool(3)
       let jobsCompleted = 0
       const fn = function (n) { return n }
-      return P.all([
+      return Promise.all([
         pool.map(_.range(1000), fn, 500)
           .then(function () {
             jobsCompleted++
@@ -424,7 +430,7 @@ describe('Pool', function () {
             jobsCompleted++
             jobsCompleted.should.equal(1)
           })
-      ])
+      ]).finally(()=>pool.close())
     })
 
   })
@@ -467,4 +473,8 @@ describe('Pool', function () {
 
   })
 
+})
+
+after(async ()=>{
+  process.exit(0) // There are some unclosed pools, so we need to exit ...
 })

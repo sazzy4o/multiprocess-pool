@@ -2,3 +2,4 @@ test/bench.js
 node_modules
 .DS_STORE
 *v8.log
+dist/

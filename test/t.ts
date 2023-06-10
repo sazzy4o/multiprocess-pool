@@ -1,7 +1,12 @@
-const { Heap }   = require('../')
-const chai   = require('chai')
+import {Heap} from '../'
+import _ from 'lodash'
+import chai from 'chai'
+
+// const Heap   = require('../').Heap
+// const chai   = require('chai')
+// const _      = require('lodash')
+
 const should = chai.should()
-const _      = require('lodash')
 
 describe('Heap', function () {
 
@@ -9,9 +14,9 @@ describe('Heap', function () {
     const arr  = _.range(1000).map(_.random.bind(_, 0, 1000000, false))
     const heap = new Heap()
     arr.forEach(function (elem) {
-      heap.insert(elem)
+      heap.insert(elem,1)
     })
-    const arrFromHeap = []
+    const arrFromHeap = [] as number[]
     while (heap.len) {
       arrFromHeap.push(heap.popMax().elem)
     }
@@ -40,20 +45,20 @@ describe('Heap', function () {
     const arr  = _.range(1000).map(_.random.bind(_, 0, 1000000, false))
     const heap = new Heap()
     for (let i = 0; i < 500; i++) {
-      heap.insert(arr[i])
+      heap.insert(arr[i], 2)
     }
-    const removed = []
+    const removed = [] as number[]
     for (let i = 0; i < 250; i++) {
       removed.push(heap.popMax().elem)
     }
     for (let i = 500; i < arr.length; i++) {
-      heap.insert(arr[i])
+      heap.insert(arr[i], 3)
     }
     removed.forEach(function (elem) {
-      heap.insert(elem)
+      heap.insert(elem, 4)
     })
 
-    const arrFromHeap = []
+    const arrFromHeap = [] as number[]
     while (heap.len) {
       arrFromHeap.push(heap.popMax().elem)
     }
@@ -62,4 +67,8 @@ describe('Heap', function () {
     arrFromHeap.should.eql(sortedArr)
   })
 
+})
+
+after(async () => {  
+  process.exit(0)
 })

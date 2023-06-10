@@ -1,11 +1,14 @@
-'use strict'
 
+// import {PriorityQueue} from '../dist/index.js'
+// import chai from 'chai'
+// import chaiAsPromised from 'chai-as-promised'
 const PriorityQueue = require('../').PriorityQueue
 const chai          = require('chai')
-const should        = chai.should()
-const P             = require('bluebird')
+const chaiAsPromised = require('chai-as-promised')
 
-chai.use(require('chai-as-promised'))
+const should        = chai.should()
+
+chai.use(chaiAsPromised)
 
 describe('Priority Queue', function () {
 
@@ -13,12 +16,12 @@ describe('Priority Queue', function () {
     const pq = new PriorityQueue(2)
     const fn = function (n) { return n * 2 }
 
-    return P.all([
+    return Promise.all([
       pq.push(1, 10, fn),
       pq.push(2, 20, fn),
       pq.push(3, 10, fn)
     ])
-      .spread(function (res1, res2, res3) {
+      .then(function ([res1, res2, res3]) {
         should.exist(res1)
         should.exist(res2)
         should.exist(res3)
@@ -33,7 +36,7 @@ describe('Priority Queue', function () {
     const pq = new PriorityQueue(1)
     const fn = function (n) { return n }
     const res = []
-    return P.all([
+    return Promise.all([
       pq.push(1, 10, fn).then(res.push.bind(res)),
       pq.push(3, 30, fn).then(res.push.bind(res)),
       pq.push(7, 70, fn).then(res.push.bind(res)),

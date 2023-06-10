@@ -1,19 +1,20 @@
-'use strict'
+import Pool from './pool'
+import Heap from './heap'
+import {Task} from './job'
 
-const Pool = require('./pool')
-const Heap = require('./heap')
-const P    = require('bluebird')
+export class PriorityQueue {
+  numReadyWorkers: number
+  pool: Pool
+  heap: Heap
 
-module.exports = class PriorityQueue {
-
-  constructor(numWorkers) {
+  constructor(numWorkers: number) {
     this.numReadyWorkers = numWorkers
     this.pool = new Pool(numWorkers)
     this.heap = new Heap()
   }
 
-  push(arg, priority, fnOrModulePath, options) {
-    return new P((resolve, reject) => {
+  push(arg:any, priority:number, fnOrModulePath: Function|string, options: any) {
+    return new Promise((resolve, reject) => {
       this.heap.insert(priority, {
         args: [arg, fnOrModulePath, options],
         resolve: resolve,
@@ -30,7 +31,7 @@ module.exports = class PriorityQueue {
     }
   }
 
-  _processTask(task) {
+  _processTask(task: Task) {
     this.pool.apply(...task.args)
       .then(task.resolve, task.reject)
       .then(() => {
@@ -40,3 +41,5 @@ module.exports = class PriorityQueue {
   }
 
 }
+
+export default PriorityQueue

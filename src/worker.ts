@@ -1,18 +1,34 @@
-'use strict'
+import jsonUtils from './json-utils'
+import Job from './job'
 
-const jsonUtils = require('./json-utils')
-const jobFns = {}
-const isPromise = obj => obj && typeof obj.then === 'function'
+const jobFns:any = {}
+const isPromise = (obj:any) => obj && typeof obj.then === 'function'
 
-function processData(argList, jobId, index) {
-  function sendErr(err) {
+// Prevent zombie processes🧟
+process.on('disconnect', function() {
+  process.exit();
+});
+process.on('error', function( err ) {
+  if (err.code == "EPIPE") {
+      process.exit(0);
+  }
+});
+
+function processData(argList: any[], jobId: number, index:number) {
+  function sendErr(err: Error) {
+    if (process.send === undefined) {
+      throw new Error('Must be run as a child process')
+    }
     process.send({
       jobId: jobId,
       error: err.message,
       stack: err.stack
     })
   }
-  function sendSucess(res, offset) {
+  function sendSucess(res:any, offset:number) {
+    if (process.send === undefined) {
+      throw new Error('Must be run as a child process')
+    }
     process.send({
       jobId   : jobId,
       index   : index + offset,
@@ -20,7 +36,7 @@ function processData(argList, jobId, index) {
       jobDone : offset === argList.length - 1
     })
   }
-  function handlePromise(promise, offset) {
+  function handlePromise(promise: Promise<any>, offset: number) {
     return promise.then(res => sendSucess(res, offset), sendErr)
   }
 
@@ -30,12 +46,12 @@ function processData(argList, jobId, index) {
       const res = fn(args)
       return isPromise(res) ? handlePromise(res, offset) : sendSucess(res, offset)
     })
-  } catch (err) {
+  } catch (err: any) {
     return sendErr(err)
   }
 }
 
-process.on('message', data => {
+process.on('message', (data: any) => {
   if (data.argList) {
     processData(jsonUtils.safeParse(data.argList), data.jobId, data.index)
   }

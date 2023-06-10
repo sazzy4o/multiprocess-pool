@@ -1,13 +1,16 @@
-'use strict'
+import Job, { JobCallback } from "./job"
+import jsonUtils from "./json-utils"
+import WorkerWrapper from "./worker-wrapper"
+import os from "os"
 
-const jsonUtils     = require('./json-utils')
-const WorkerWrapper = require('./worker-wrapper')
-const P             = require('bluebird')
-const os            = require('os')
-
-module.exports = class Pool {
-
-  constructor(numWorkers) {
+export class Pool {
+  queue: any[]
+  closed: boolean
+  workers: any[]
+  readyWorkers: any[]
+  _nextJobId: number
+  [key: string]: any
+  constructor(numWorkers: number) {
     numWorkers = numWorkers || os.cpus().length
 
     this.queue        = []
@@ -30,29 +33,29 @@ module.exports = class Pool {
     this.workers.forEach(worker => worker.terminateImmediately())
   }
 
-  define(name, fnOrModulePath, options) {
+  define(name:string, fnOrModulePath: Function | string, options:any) {
     if (this.hasOwnProperty(name)) {
       throw new Error(`Pool already has a property "${name}"`)
     }
     this[name] = {
-      map: arg => this.map(arg, fnOrModulePath, options),
-      apply: arg => this.apply(arg, fnOrModulePath, options)
+      map: (arg:any) => this.map(arg, fnOrModulePath, options),
+      apply: (arg:any) => this.apply(arg, fnOrModulePath, options)
     }
   }
 
   // Applies single argument to a function and returns result via a Promise
-  apply(arg, fnOrModulePath, options) {
-    return this.map([arg], fnOrModulePath, options).spread(result => result)
+  apply(arg:any, fnOrModulePath: Function | string, options: any) {
+    return this.map([arg], fnOrModulePath, options).then(res => res[0])
   }
 
-  map(arr, fnOrModulePath, options) {
-    return new P((resolve, reject) =>
+  map(arr: any[], fnOrModulePath: Function|string, options:any): Promise<any[]> {
+    return new Promise((resolve, reject) =>
       this._queuePush(arr, fnOrModulePath, options,
-        (err, data) => err ? reject(err) : resolve(data))
+        (err:any, data:any) => err ? reject(err) : resolve(data))
     )
   }
 
-  _queuePush(arr, fnOrModulePath, options, cb) {
+  _queuePush(arr: any[], fnOrModulePath: Function|string, options:any, cb: JobCallback) {
     options = options || {}
     const chunksize = typeof options === 'number' ? options : options.chunksize
 
@@ -90,12 +93,12 @@ module.exports = class Pool {
     }
   }
 
-  _registerJobWithWorkers(job) {
-    const result = []
-    let tasksRemaining = job.arr.length
+  _registerJobWithWorkers(job: Job) {
+    const result:any[] = []
+    let tasksRemaining = job.arr ? job.arr.length: 0
     let jobTerminated = false
     this.workers.forEach(worker => {
-      worker.registerJob(job.id, job.fnOrModulePath, job.options, (err, data) => {
+      worker.registerJob(job.id, job.fnOrModulePath, job.options, (err:any, data:any) => {
         this.readyWorkers.push(worker)
         this._queueTick()
 
@@ -122,7 +125,7 @@ module.exports = class Pool {
     })
   }
 
-  _assertIsUsableFnOrModulePath(fnOrModulePath) {
+  _assertIsUsableFnOrModulePath(fnOrModulePath: Function|string) {
     if (typeof fnOrModulePath !== 'function' && typeof fnOrModulePath !== 'string') {
       throw new Error('fnOrModulePath must be a function or a string')
     }
@@ -133,3 +136,5 @@ module.exports = class Pool {
   }
 
 }
+
+export default Pool
