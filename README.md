@@ -1,5 +1,11 @@
-# node-multiprocessing
-Dead simple parallel processing for node
+# multiprocess-pool
+Simple Node.js multiprocessing library similar to multiprocessing.Pool in Python
+
+## Installation
+
+Via npm:
+
+    npm install multiprocess-pool
 
 ## Simple Example
 
@@ -49,16 +55,13 @@ function getPath(relPath) {
 const pool = new Pool(3);  // spawns 3 child processes to complete your jobs
 
 pool.map([".", "..", "../../"], getPath).then(result => console.log(result));
-// [/home/username/git/multiprocess-pool, /home/username/git, /home/vonderoh]
+// [/home/username/git/multiprocess-pool, /home/username/git, /home/username]
 
 pool.close(); // Process will hang if pool is not closed
 ```
 
-## Installation
-
-Via npm:
-
-    npm install multiprocess-pool
+## More examples
+All examples are avaliable in the [examples folder](https://github.com/sazzy4o/multiprocess-pool/tree/main/examples)
 
 ## Writing a mapper function
 
