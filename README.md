@@ -1,10 +1,10 @@
 # node-multiprocessing
 Dead simple parallel processing for node
 
-## Example
+## Simple Example
 
 ```javascript
-const Pool = require('multiprocessing').Pool;
+const { Pool } = require('multiprocess-pool');
 
 function square(x) {
   return x * x;
@@ -13,8 +13,9 @@ function square(x) {
 const pool = new Pool(4);  // spawns 4 child processes to complete your jobs
 
 pool.map([1, 2, 3], square).then(result => console.log(result));
-
 // [1, 4, 9]
+
+pool.close(); // Process will hang if pool is not closed
 ```
 
 ## Promise + Module worker example
@@ -27,18 +28,37 @@ module.exports = async function squareAsync(x) {
 
 ```javascript
 // ./main.js
-const Pool = require('multiprocessing').Pool;
-(new Pool(4)).map([1, 2, 3], __dirname + '/worker')
+const { Pool } = require('multiprocess-pool');
+const pool = new Pool(4);
+pool.map([1, 2, 3, 4], __dirname + '/worker')
   .then(function (res) {
-    // [1, 4, 9]
+    // [1, 4, 9, 16]
   });
+pool.close();
+```
+
+## Require example
+```javascript
+const { Pool } = require('multiprocess-pool');
+
+function getPath(relPath) {
+  const path = require("path");
+  return path.resolve(relPath);
+}
+
+const pool = new Pool(3);  // spawns 3 child processes to complete your jobs
+
+pool.map([".", "..", "../../"], getPath).then(result => console.log(result));
+// [/home/username/git/multiprocess-pool, /home/username/git, /home/vonderoh]
+
+pool.close(); // Process will hang if pool is not closed
 ```
 
 ## Installation
 
 Via npm:
 
-    npm install multiprocessing
+    npm install multiprocess-pool
 
 ## Writing a mapper function
 
@@ -78,7 +98,7 @@ Takes a function that is called with each result as it comes in. Useful for stre
 NOTE: The onResult is called in whatever order results come back in. This may not be the same order as the input array.
 
 ```javascript
-const Pool = require('multiprocessing').Pool;
+const { Pool } = require('multiprocess-pool');
 
 function square(x) {
   return x * x;
@@ -91,6 +111,7 @@ pool.map([1, 2, 3], square, {onResult: val => { result.push(val) }})
   .then(() => console.log(result));
 // prints "[4, 9, 1]"
 // OR in some other order, depending on how we receive the results!
+pool.close();
 ```
 
 ###### Option: timeout [experimental]
@@ -99,7 +120,7 @@ Approximate maximum processing time to allow for a single item in the array. If 
 Recommended that you use this only for longer tasks, or as a way to prevent infinite loops. Timeouts below 200ms or so can be unreliable.
 
 ```javascript
-const Pool = require('multiprocessing').Pool;
+const { Pool } = require('multiprocess-pool');
 
 function anInfiniteLoop() {
   while (true) {}
@@ -137,7 +158,7 @@ A max priority queue built off of a pool of worker processes. Items with a highe
 Pushes an item onto the queue and returns a promise that will be resolved with the result or rejected if any errors were raised.
 
 ```javascript
-const PriorityQueue = require('multiprocessing').PriorityQueue;
+const { PriorityQueue } = require('multiprocess-pool');
 
 function square(x) {
   return x * x;
