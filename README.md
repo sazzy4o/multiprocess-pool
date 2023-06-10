@@ -32,7 +32,7 @@ const { Pool } = require('multiprocess-pool');
 const pool = new Pool(4);
 pool.map([1, 2, 3, 4], __dirname + '/worker')
   .then(function (res) {
-    // [1, 4, 9, 16]
+    console.log(res); // [1, 4, 9, 16]
   });
 pool.close();
 ```
