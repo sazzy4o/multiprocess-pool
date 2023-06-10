@@ -33,7 +33,7 @@ export class Pool {
     this.workers.forEach(worker => worker.terminateImmediately())
   }
 
-  define(name:string, fnOrModulePath: Function | string, options:any) {
+  define(name:string, fnOrModulePath: Function | string, options?:any) {
     if (this.hasOwnProperty(name)) {
       throw new Error(`Pool already has a property "${name}"`)
     }
@@ -44,18 +44,18 @@ export class Pool {
   }
 
   // Applies single argument to a function and returns result via a Promise
-  apply(arg:any, fnOrModulePath: Function | string, options: any) {
+  apply(arg:any, fnOrModulePath: Function | string, options?: any) {
     return this.map([arg], fnOrModulePath, options).then(res => res[0])
   }
 
-  map(arr: any[], fnOrModulePath: Function|string, options:any): Promise<any[]> {
+  map(arr: any[], fnOrModulePath: Function|string, options?:any): Promise<any[]> {
     return new Promise((resolve, reject) =>
       this._queuePush(arr, fnOrModulePath, options,
         (err:any, data:any) => err ? reject(err) : resolve(data))
     )
   }
 
-  _queuePush(arr: any[], fnOrModulePath: Function|string, options:any, cb: JobCallback) {
+  _queuePush(arr: any[], fnOrModulePath: Function|string, options:any|undefined, cb: JobCallback) {
     options = options || {}
     const chunksize = typeof options === 'number' ? options : options.chunksize
 
