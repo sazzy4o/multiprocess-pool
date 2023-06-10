@@ -6,7 +6,7 @@ Simple Node.js multiprocessing library similar to multiprocessing.Pool in Python
 - 🔥 [Blazing](https://twitter.com/acdlite/status/974390255393505280) fast
 - 🚫 No dependencies!
 - 🤖 Supports running functions and worker scripts on another process
-- 🚀 Signifcantly speed up your code
+- 🚀 Significantly speeds up your code
 - 🔒 TypeScript Support
 - 😌 Simple to use and easy to learn
 
