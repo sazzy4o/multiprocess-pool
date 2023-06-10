@@ -1,5 +1,14 @@
-# multiprocess-pool
+# The multiprocess-pool Library
 Simple Node.js multiprocessing library similar to multiprocessing.Pool in Python
+
+## Features
+
+- 🔥 [Blazing](https://twitter.com/acdlite/status/974390255393505280) fast
+- 🚫 No dependencies!
+- 🤖 Supports running functions and worker scripts on another process
+- 🚀 Can signifcantly speed up your code
+- 🔒 Supports TypeScript
+- 😌 Simple to use and easy to learn
 
 ## Installation
 
