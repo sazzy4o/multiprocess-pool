@@ -10,7 +10,7 @@ export class Pool {
   readyWorkers: any[]
   _nextJobId: number
   [key: string]: any
-  constructor(numWorkers: number) {
+  constructor(numWorkers?: number) {
     numWorkers = numWorkers || os.cpus().length
 
     this.queue        = []
