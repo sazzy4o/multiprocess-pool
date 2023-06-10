@@ -4,7 +4,7 @@
   "description": "Node.js multiprocessing library similar to multiprocessing.Pool in Python",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ryanpon/node-multiprocessing"
+    "url": "https://github.com/sazzy4o/multiprocess-pool"
   },
   "main": "./dist/index.js",
   "scripts": {
