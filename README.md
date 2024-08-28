@@ -190,7 +190,7 @@ pq.push(10, 4, square).then(console.log)
 // >>> 2500
 ```
 
-Uses same options as Pool.map, but chunksize will be ignored.
+Uses same options as `Pool.map`, but chunksize will be ignored.
 
 ## License
 
